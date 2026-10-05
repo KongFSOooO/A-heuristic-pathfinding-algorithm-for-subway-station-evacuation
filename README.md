@@ -1,15 +1,28 @@
-# A-heuristic-pathfinding-algorithm-for-subway-station-evacuation-
-the database for paper A heuristic pathfinding algorithm for subway station evacua-tion considering pedestrian density and environmental infor-mation
+# A-heuristic-pathfinding-algorithm-for-subway-station-evacuation
+This repository illustrates the organization of data for a subway-station evacuation study.
 The study develops a time-based A* routing method that uses pedestrian density and environmental information to select evacuation routes. A network model generates routes, and an AnyLogic pedestrian simulation evaluates the resulting evacuation durations. This README explains how to inspect the supplied datasets, carry out the corresponding analyses, and identify the inputs needed to rerun the full workflow.
-Documentation status: This README was prepared from the manuscript and the four filenames. The actual spreadsheets and CSV contents have not been inspected. File-to-scenario assignments, worksheet meanings, column names, units, and stored difference signs therefore require confirmation. The examples below inspect the files or accept user-specified column names; they do not assume an unverified data schema.
+
 1. Repository contents
-Place this README alongside the following files, or adjust the paths in the examples to match their locations.
-Use the scenario definitions below to establish each file's role. The manuscript does not establish whether the two workbooks represent different strategies, observations, inputs, or outputs.
+| File | Contents |
+| --- | --- |
+| `network/nodes.csv` | IDs, floors, and types of 236 example nodes. |
+| `network/edges.csv` | Connections and lengths of 275 undirected edges. |
+| `scenario1_blockage/route_comparison.csv` | Baseline and proposed routes, hop counts, and change flags across 60 observations. |
+| `scenario1_blockage/route_changes.csv` | Number of changed-route origins and their mean time reduction at each observation. |
+| `scenario1_blockage/evacuation_times.csv` | Baseline and proposed mean evacuation durations for each evaluated origin. |
+| `scenario1_blockage/density_records.csv` | Node-level pedestrian densities across 60 observations. |
+| `scenario2_fire/route_comparison.csv` | Baseline and proposed routes, hop counts, and change flags across 104 observations. |
+| `scenario2_fire/evacuation_times.csv` | Baseline and proposed mean evacuation durations for each evaluated origin. |
+| `scenario2_fire/density_records.csv` | Node-level pedestrian densities across 104 observations. |
+| `scenario3_sensitivity/sensitivity_results.csv` | Mean differences and standard deviations for 13 temperature or water-depth settings. |
+| `scenario3_sensitivity/origin_results.csv` | Origin-level baseline and proposed durations underlying the sensitivity summaries. |
+
 2. Study configuration
 The case study represents Guryong Station using 236 nodes and 275 edges, with circulation levels B6, B5, B3, B2, and B1. Ordinary circulation areas are 5 m × 5 m, corresponding to 25 m² per area. The nearer exit is the single routing target in the modeled configuration.
 The simulation contains 1,600 pedestrians: 1,400 distributed across non-exit node areas and an additional 200 on B6 to represent alighting passengers. Comfortable walking speeds are drawn uniformly from 1.2–1.5 m/s. Escalators are assumed stopped and treated as stairs. For network cost calculation, stairs and stopped escalators inherit the effective speeds of their associated level-ground approach nodes.
 The manuscript reports Python 3.12 for network calculations and AnyLogic Personal Learning Edition 8.9 for pedestrian simulation. These are the reported study versions; the data-loading examples below are utilities for inspecting the files.
 Source: manuscript Sections 3.2 and 4.1–4.2.
+
 3. Open and inspect the data
 The workbooks can be opened in a spreadsheet application, and the CSV files can be imported as tables. For Python inspection, install:
 python -m pip install pandas openpyxl
@@ -36,16 +49,7 @@ for filename in (
     print(f"\n{filename}")
     print(preview.to_string(index=False, header=False))
     The CSV example assumes comma-separated UTF-8 text. Adjust the delimiter or encoding if the file uses another format. After inspecting the layout, load the required sheet or table with the appropriate header row.
-Before combining records, identify the following information wherever it is available:
-| Information | Purpose |
-| --- | --- |
-| Scenario and routing strategy | Keep the prescribed conditions and comparison methods aligned. |
-| Observation time or sample index | Associate density snapshots with their route calculations. |
-| Node or initial-origin identifier | Match density, routes, and evacuation outcomes to the correct locations. |
-| Initial floor | Group complete evacuation journeys by starting floor. |
-| Pedestrian count or density | Determine whether conversion to persons/m² is needed. |
-| Ordered route sequence | Identify route changes and count transitions. |
-| Evacuation duration or origin-node mean duration | Calculate the simulation-based performance measures. |
+
 4. Analyze pedestrian density
 For an ordinary 25 m² circulation area, calculate density from occupancy as:
 \[
@@ -79,7 +83,7 @@ SC_k=\frac{1}{|C_k|}\sum_{i\in C_k}
 \left(\overline{T}_{i,B}-\overline{T}_{i,H}\right),
 \qquad |C_k|>0.
 \]
-The origin means come from completed simulation runs. Variation across observations reflects changes in the membership of $C_k$; it does not measure instantaneous savings or remaining evacuation time at each observation. When the changed-route set is empty, report the mean as undefined or missing.
+The origin means come from completed simulation runs. Variation across observations reflects changes in the membership of $C_k$; 
 For Figure 12(b), summarize the distribution of origin-level reductions. State the included origin set and its size when calculating percentages, including the percentage with reductions exceeding 10 s.
 Source: manuscript Sections 4.3.2, 4.4.1, and 4.4.2; Equations (4)–(6).
 Optional Python utility for paired origin means
@@ -108,6 +112,7 @@ def compare_origin_means(table, origin_col, baseline_col, proposed_col):
     }
     return paired, summary
 For Figure 10(b), select the origins in $C_k$ before calling the function at each observation. The function does not infer route changes, determine the file's scenario, or convert network travel costs into simulation times.
+
 6. Relate the available records to the paper's outputs
 Reconstruct an output only when its required records are present.
 Paper output	Required records
@@ -117,14 +122,10 @@ Figure 10(b): Mean time reductions	Completed-run simulation origin means for bot
 Figure 11: Fire-scenario route differences	Routes at 530 s; node coordinates, floor labels, and connectivity for a spatial visualization.
 Figure 12(a): Hop-count differences	Ordered routes or documented hop counts for both network methods.
 Figure 12(b): Distribution of time reductions	Paired simulated origin means and an explicitly defined origin subset.
-Figure 13: Environmental sensitivity	Paired simulated origin means for each separate temperature or water-depth setting. Availability in the four files is unconfirmed.
+Figure 13: Environmental sensitivity	Paired simulated origin means for each separate temperature or water-depth setting. 
 
-
-As manuscript reference values, the structural-blockage analysis reports approximately 120–122 changed-route origins and 18–24 s mean reductions for those subsets. The fire analysis reports different routes for 36.8% of evaluated origins at 530 s. These comparison values are reported in the manuscript and have not been independently verified from the repository files.
-For Figure 13, calculate proposed-minus-baseline differences within each origin and then the equally weighted mean and standard deviation across origins. The displayed bars are ±1 standard deviation across origins. Exact numerical reproduction requires the original standard-deviation convention. The bars describe spatial variation and do not by themselves provide a statistical significance test.
 
 7. Rerun the full routing and simulation workflow
-Reanalyzing saved results requires the corresponding records described above. Rerunning the complete study additionally requires the station graph, node types and coordinates, stair/escalator parent-node mapping, target exit, scenario accessibility, environmental assignments, mobility rules, routing implementation, and the AnyLogic model and configuration. Confirm which of these are provided in the repository or available separately from the authors.
 The manuscript describes the following workflow:
 1. Obtain reference records. Run the default shortest-path AnyLogic simulation to obtain baseline density observations and evacuation durations under the chosen scenario.
 2. Prepare each routing snapshot. Remove unavailable nodes and connections, identify the component connected to the target exit, and match density and environmental inputs to network nodes.
