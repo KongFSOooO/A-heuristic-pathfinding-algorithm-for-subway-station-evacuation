@@ -53,6 +53,7 @@ Temperature from −20 to 30 °C in 10 °C steps, and water depth from 0 to 60 c
 - `mean_reduction_s` is baseline minus proposed, averaged over the changed-route origins at that observation. Positive values indicate shorter evacuation under the proposed guidance.
 - `mean_diff_s` is proposed minus baseline. Negative values indicate shorter evacuation under the proposed guidance.
 - `std_s` in `sensitivity_results.csv` is the standard deviation across evaluated origins, not across simulation repetitions.
+- nodes count changed in different disaster scenarioes where they become naccessible.
 
 ## License
 
