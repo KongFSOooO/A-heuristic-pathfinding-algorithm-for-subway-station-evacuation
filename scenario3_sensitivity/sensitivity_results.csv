@@ -1,0 +1,14 @@
+variable,setting,mean_diff_s,std_s
+temperature,-20,-4.2,12.5
+temperature,-10,-4.1,12.4
+temperature,0,-3.8,11.1
+temperature,10,-3.8,11.1
+temperature,20,-3.8,11.1
+temperature,30,-4.1,12.4
+water_depth,0,-3.7,10
+water_depth,10,-4.2,10.7
+water_depth,20,-4.6,10.4
+water_depth,30,-5.4,10.4
+water_depth,40,-4.9,10.4
+water_depth,50,-6.3,11.7
+water_depth,60,-6.9,12.2
