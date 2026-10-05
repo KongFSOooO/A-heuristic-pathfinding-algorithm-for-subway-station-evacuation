@@ -56,5 +56,82 @@ To reproduce the analysis underlying Figure 9, select the structural-blockage re
 For Scenario 2, the route comparison uses the node-level density snapshot at 530 s, when the baseline B3 floor-average density reaches its recorded maximum. Use each node's contemporaneous density in the route calculation.
 Source: manuscript Sections 4.3.1, 4.4.1, and 4.4.2.
 
+5. Compare routes and evacuation outcomes
+5.1. Identify origins with different routes
+At each observation, compare the complete ordered node sequences returned by the proposed time-based A* method and the distance-based Dijkstra implementation for the same origin and target exit.
+Use the same evaluated accessible origin set for both methods, and record origins without an available route separately.
+Let $C_k$ contain the origins with different sequences, and let $M_k=|C_k|$. Plotting $M_k$ over the structural-blockage observations gives the analysis underlying Figure 10(a). At the 530 s fire snapshot, the same comparison supports Figure 11.
+A route's hop count is its number of transitions, normally len(route) - 1. Compare proposed and Dijkstra hop counts to obtain the distribution underlying Figure 12(a). Equal hop counts can occur for different routes.
+5.2. Calculate origin-node evacuation times
+Simulation evacuation time is the elapsed time from the beginning of evacuation movement to crossing the exit line. For each strategy, first average pedestrian durations within their initial origin node. Denote the resulting mean by $\overline{T}{i,B}$ for the default AnyLogic shortest-path baseline and $\overline{T}{i,H}$ for the proposed-guidance simulation.
+Subsequent comparisons give equal weight to each evaluated origin mean. If the data already contain origin-node means, use those means directly. Floor summaries group origins by their initial floor and represent their complete journeys to the exit.
+The Dijkstra network route comparator and the AnyLogic simulation baseline serve different parts of the evaluation. Network traversal-cost estimates and simulated departure-to-exit durations must be kept as separate quantities.
+5.3. Use explicit signs for time comparisons
+Quantity	Calculation	Interpretation
+Evacuation-time reduction	Baseline mean − proposed mean	Positive values favor the proposed guidance.
+Evacuation-time difference	Proposed mean − baseline mean	Negative values favor the proposed guidance.
 
+
+Check the definition of any precomputed CSV difference column before interpreting it.
+For Figure 10(b), average the reductions only over the changed-route origins at each observation:
+\[
+SC_k=\frac{1}{|C_k|}\sum_{i\in C_k}
+\left(\overline{T}_{i,B}-\overline{T}_{i,H}\right),
+\qquad |C_k|>0.
+\]
+The origin means come from completed simulation runs. Variation across observations reflects changes in the membership of $C_k$; it does not measure instantaneous savings or remaining evacuation time at each observation. When the changed-route set is empty, report the mean as undefined or missing.
+For Figure 12(b), summarize the distribution of origin-level reductions. State the included origin set and its size when calculating percentages, including the percentage with reductions exceeding 10 s.
+Source: manuscript Sections 4.3.2, 4.4.1, and 4.4.2; Equations (4)–(6).
+Optional Python utility for paired origin means
+Use this function after selecting one scenario, environmental setting, and analysis subset. The input must contain one paired record per origin, with simulated mean evacuation times in seconds. Supply the actual column names from the file.
+import pandas as pd
+
+def compare_origin_means(table, origin_col, baseline_col, proposed_col):
+    paired = table[[origin_col, baseline_col, proposed_col]].copy()
+    paired.columns = ["origin", "baseline_s", "proposed_s"]
+
+    if paired.empty or paired.isna().any().any():
+        raise ValueError("Select nonempty records with complete paired means.")
+    if paired["origin"].duplicated().any():
+        raise ValueError("Filter or aggregate to one paired mean per origin.")
+
+    for column in ("baseline_s", "proposed_s"):
+        paired[column] = pd.to_numeric(paired[column], errors="raise")
+        if not paired[column].between(0, float("inf"), inclusive="left").all():
+            raise ValueError("Evacuation times must be finite and nonnegative.")
+
+    paired["reduction_s"] = paired["baseline_s"] - paired["proposed_s"]
+    paired["difference_s"] = -paired["reduction_s"]
+    summary = {
+        "n_origins": len(paired),
+        "equal_origin_mean_reduction_s": paired["reduction_s"].mean(),
+    }
+    return paired, summary
+For Figure 10(b), select the origins in $C_k$ before calling the function at each observation. The function does not infer route changes, determine the file's scenario, or convert network travel costs into simulation times.
+6. Relate the available records to the paper's outputs
+Reconstruct an output only when its required records are present.
+Paper output	Required records
+Figure 9: Density histories	Structural-blockage node densities or counts, area definitions, and observation times.
+Figure 10(a): Changed-route counts	Proposed and Dijkstra route sequences, or documented change indicators, for each evaluated origin and observation.
+Figure 10(b): Mean time reductions	Completed-run simulation origin means for both strategies and the changed-route sets for each observation.
+Figure 11: Fire-scenario route differences	Routes at 530 s; node coordinates, floor labels, and connectivity for a spatial visualization.
+Figure 12(a): Hop-count differences	Ordered routes or documented hop counts for both network methods.
+Figure 12(b): Distribution of time reductions	Paired simulated origin means and an explicitly defined origin subset.
+Figure 13: Environmental sensitivity	Paired simulated origin means for each separate temperature or water-depth setting. Availability in the four files is unconfirmed.
+
+
+As manuscript reference values, the structural-blockage analysis reports approximately 120–122 changed-route origins and 18–24 s mean reductions for those subsets. The fire analysis reports different routes for 36.8% of evaluated origins at 530 s. These comparison values are reported in the manuscript and have not been independently verified from the repository files.
+For Figure 13, calculate proposed-minus-baseline differences within each origin and then the equally weighted mean and standard deviation across origins. The displayed bars are ±1 standard deviation across origins. Exact numerical reproduction requires the original standard-deviation convention. The bars describe spatial variation and do not by themselves provide a statistical significance test.
+
+7. Rerun the full routing and simulation workflow
+Reanalyzing saved results requires the corresponding records described above. Rerunning the complete study additionally requires the station graph, node types and coordinates, stair/escalator parent-node mapping, target exit, scenario accessibility, environmental assignments, mobility rules, routing implementation, and the AnyLogic model and configuration. Confirm which of these are provided in the repository or available separately from the authors.
+The manuscript describes the following workflow:
+1. Obtain reference records. Run the default shortest-path AnyLogic simulation to obtain baseline density observations and evacuation durations under the chosen scenario.
+2. Prepare each routing snapshot. Remove unavailable nodes and connections, identify the component connected to the target exit, and match density and environmental inputs to network nodes.
+3. Estimate local speeds. Retain the lower of the illuminance-based and density-based candidate speeds, then apply the applicable temperature or water-depth adjustment. Assign each stair or stopped-escalator node its parent-node effective speed. Use Table 1 and Section 3.1 for the adopted rules.
+4. Calculate transition costs and the heuristic. For non-exit neighbors, use the center-to-center distance divided by the lower adjacent-node speed. For the final connection to the exit, use the adjacent non-exit node's speed. The heuristic is the shortest available network distance to the exit divided by the maximum effective speed among retained non-exit nodes.
+5. Generate and apply routes. Run Algorithms 1–2, map node sequences to AnyLogic movement areas, and apply the routes at the corresponding density-sampling times. The manuscript describes reference density records as the source of the observations used for this workflow.
+6. Record and compare evacuation durations. Obtain completed-run departure-to-exit durations, aggregate by initial origin, and apply the comparison definitions in Section 5 of this README.
+During each A* search, speeds are fixed and assumed finite and positive. Exact reproduction requires the original speed-rule implementation, route tie-breaking, and stochastic simulation settings. The mathematical minimum-cost claim applies to the prepared network snapshot and its modeled traversal costs.
+In the reported simulation, local calculated speeds are applied while pedestrians occupy traversable areas subject to environmental mobility adjustments, and their original comfortable-speed settings are restored after leaving those areas.
     
